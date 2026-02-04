@@ -1,0 +1,8 @@
+flask
+flask-cors
+nltk
+spacy
+python-Levenshtein
+pdfminer.six
+scikit-learn
+gunicorn
