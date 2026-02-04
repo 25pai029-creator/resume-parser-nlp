@@ -146,9 +146,9 @@ def parse_resume():
         "extracted_roles": extracted_roles,
         "experience": extracted_experience
     })
-#@app.route("/")
-#def home():
- #   return jsonify({"message": "Resume Parser API is running"})
+@app.route("/")
+def home():
+    return jsonify({"message": "Resume Parser API is running"})
 
 if __name__ == "__main__":
     app.run(debug=True)
