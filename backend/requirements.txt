@@ -6,3 +6,4 @@ python-Levenshtein
 pdfminer.six
 scikit-learn
 gunicorn
+PyPDF2
