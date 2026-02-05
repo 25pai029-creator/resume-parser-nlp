@@ -1,9 +1,10 @@
+
 flask
 flask-cors
-nltk
-spacy
-python-Levenshtein
-pdfminer.six
-scikit-learn
 gunicorn
+waitress
 PyPDF2
+nltk
+python-Levenshtein
+scikit-learn
+pdfminer.six
