@@ -1,2 +1,4 @@
-gunicorn app:app
+#gunicorn app:app
+#!/usr/bin/env bash
+gunicorn app:app --bind 0.0.0.0:$PORT
 
