@@ -13,7 +13,7 @@ export default function Dashboard() {
     formData.append("resume", resume);
     formData.append("job_description", jobDesc);
 
-    const res = await fetch("http://127.0.0.1:5000/parse", {
+    const res = await fetch("http://127.0.0.1:8000/parse", {
       method: "POST",
       body: formData,
     });

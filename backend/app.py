@@ -1,5 +1,6 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import PyPDF2
 import re
 
@@ -8,8 +9,19 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer, PorterStemmer
 from nltk.metrics.distance import edit_distance
 
-app = Flask(__name__)
-CORS(app)
+# Make sure nltk resources are available
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+app = FastAPI()
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 stop_words = set(stopwords.words('english'))
 lemmatizer = WordNetLemmatizer()
@@ -22,34 +34,11 @@ def correct_spelling(word, vocab):
     return min(vocab, key=lambda v: edit_distance(word, v))
 
 # ---------------- TEXT CLEANING ----------------
-def clean_text(text, vocab=None):
-    text = re.sub(r"[^a-zA-Z ]", " ", text)
-
-    # Tokenization
-    words = text.lower().split()
-
-    # Stop word removal
-    words = [w for w in words if w not in stop_words]
-
-    # Spelling correction
-    if vocab:
-        words = [correct_spelling(w, vocab) for w in words]
-
-    # Lemmatization
-    words = [lemmatizer.lemmatize(w) for w in words]
-
-    # Stemming
-    words = [stemmer.stem(w) for w in words]
-
-    return set(words)
 def clean_text_for_skills(text):
     text = re.sub(r"[^a-zA-Z ]", " ", text)
     words = text.lower().split()
     words = [w for w in words if w not in stop_words]
     return set(words)
-
-# ---------------- ROLE EXTRACTION ----------------
-
 
 # ---------------- EXPERIENCE EXTRACTION ----------------
 def extract_experience(text):
@@ -64,7 +53,7 @@ def extract_experience(text):
 
     return list(set(experiences))
 
-
+# ---------------- ROLE EXTRACTION ----------------
 def extract_roles(text):
     roles = {
         "data scientist": ["data", "scientist"],
@@ -77,60 +66,55 @@ def extract_roles(text):
         "python developer": ["python", "developer"],
         "ai engineer": ["ai", "engineer"],
         "web developer": ["web", "developer"],
-        "AI Developer":["AI" ,"Developer"]
+        "ai developer": ["ai", "developer"]
     }
 
     text = re.sub(r"[^a-zA-Z ]", " ", text.lower())
     words = set(text.split())
 
     found_roles = []
-
     for role, keywords in roles.items():
         if all(k in words for k in keywords):
             found_roles.append(role)
 
     return found_roles
 
-# ---------------- ROUTE ----------------
-@app.route("/parse", methods=["POST"])
-def parse_resume():
-    file = request.files["resume"]
-    job_desc = request.form["job_description"]
+# ---------------- ROUTES ----------------
+@app.get("/")
+def home():
+    return {"message": "Resume Parser API is running"}
 
+@app.post("/parse")
+async def parse_resume(
+    resume: UploadFile = File(...),
+    job_description: str = Form(...)
+):
     resume_text = ""
 
-    # Reading TEXT file
-    if file.filename.endswith(".txt"):
-        resume_text = file.read().decode("utf-8")
+    # Read TXT
+    if resume.filename.endswith(".txt"):
+        resume_text = (await resume.read()).decode("utf-8")
 
-    # Reading PDF file
-    elif file.filename.endswith(".pdf"):
-        reader = PyPDF2.PdfReader(file)
+    # Read PDF
+    elif resume.filename.endswith(".pdf"):
+        reader = PyPDF2.PdfReader(resume.file)
         for page in reader.pages:
             resume_text += page.extract_text() or ""
 
-    # Vocabulary for spelling correction
-    vocab = set(re.sub(r"[^a-zA-Z ]", " ", job_desc).lower().split())
-
-    #resume_words = clean_text(resume_text, vocab)
-    #job_words = clean_text(job_desc, vocab)
-
     resume_words = clean_text_for_skills(resume_text)
-    job_words = clean_text_for_skills(job_desc)
+    job_words = clean_text_for_skills(job_description)
 
-   
     matched_skills = list(resume_words & job_words)
     missing_skills = list(job_words - resume_words)
 
-    # Role & experience extraction
     extracted_roles = extract_roles(resume_text)
     extracted_experience = extract_experience(resume_text)
 
-    #score = min(len(matched_skills) * 5, 100)
     if len(job_words) == 0:
-       score = 0
+        score = 0
     else:
-       score = round((len(matched_skills) / len(job_words)) * 100)
+        score = round((len(matched_skills) / len(job_words)) * 100)
+
     if score >= 60:
         hiring_status = "Strongly Recommended"
     elif score >= 40:
@@ -138,7 +122,7 @@ def parse_resume():
     else:
         hiring_status = "Not Recommended"
 
-    return jsonify({
+    return JSONResponse({
         "match_score": score,
         "hiring_decision": hiring_status,
         "matched_skills": matched_skills[:10],
@@ -146,9 +130,3 @@ def parse_resume():
         "extracted_roles": extracted_roles,
         "experience": extracted_experience
     })
-@app.route("/")
-def home():
-    return jsonify({"message": "Resume Parser API is running"})
-
-if __name__ == "__main__":
-    app.run(debug=True)
