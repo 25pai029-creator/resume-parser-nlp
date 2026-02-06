@@ -9,3 +9,4 @@ scikit-learn
 gunicorn
 PyPDF2
 uvicorn   
+python-multipart
