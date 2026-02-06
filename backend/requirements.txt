@@ -7,3 +7,4 @@ pdfminer.six
 scikit-learn
 gunicorn
 PyPDF2
+uvicorn   
