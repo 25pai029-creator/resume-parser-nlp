@@ -21,7 +21,7 @@ export default function Dashboard() {
         `${process.env.NEXT_PUBLIC_API_URL}/parse`,
         {
           method: "POST",
-          body: form,
+          body: formData,
         }
       );
     const data = await res.json();
