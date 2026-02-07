@@ -13,11 +13,17 @@ export default function Dashboard() {
     formData.append("resume", resume);
     formData.append("job_description", jobDesc);
 
-    const res = await fetch("http://127.0.0.1:8000/parse", {
+   /* const res = await fetch("http://127.0.0.1:8000/parse", {
       method: "POST",
       body: formData,
-    });
-
+    });*/
+     const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/parse`,
+        {
+          method: "POST",
+          body: form,
+        }
+      );
     const data = await res.json();
     setResult(data);
   };
