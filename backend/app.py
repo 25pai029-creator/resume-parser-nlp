@@ -8,10 +8,12 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer, PorterStemmer
 from nltk.metrics.distance import edit_distance
+from nltk.corpus import wordnet
 
 # Make sure nltk resources are available
 nltk.download('stopwords')
 nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 app = FastAPI()
 
@@ -34,11 +36,67 @@ def correct_spelling(word, vocab):
     return min(vocab, key=lambda v: edit_distance(word, v))
 
 # ---------------- TEXT CLEANING ----------------
+BASE_VOCAB = {
+    "devlop", "developer", "development",
+    "python", "java", "javascript",
+    "backend", "frontend", "fullstack",
+    "engineer", "engineering",
+    "system", "software", "web"
+}
+#BASE_VOCAB = set(job_description.lower().split()) | set(resume_text.lower().split())
+
+
+
+
 def clean_text_for_skills(text):
     text = re.sub(r"[^a-zA-Z ]", " ", text)
     words = text.lower().split()
-    words = [w for w in words if w not in stop_words]
-    return set(words)
+
+    cleaned_words = []
+    for w in words:
+        if w not in stop_words:
+            stem = stemmer.stem(w)
+            lemma = lemmatizer.lemmatize(w, wordnet.VERB)
+            corrected = correct_spelling(lemma, BASE_VOCAB)
+            cleaned_words.append(corrected)
+            cleaned_words.append(stem)
+
+    return set(cleaned_words)
+
+    """
+
+
+def clean_text_for_skills(text):
+    text = re.sub(r"[^a-zA-Z ]", " ", text)
+    words = text.lower().split()
+
+    cleaned_words = set()
+
+    for w in words:
+        if w in stop_words:
+            continue
+
+        # 1️⃣ Lemmatize as NOUN (systems → system)
+        lemma_noun = lemmatizer.lemmatize(w, wordnet.NOUN)
+
+        # 2️⃣ Lemmatize as VERB (developing → develop)
+        lemma_verb = lemmatizer.lemmatize(lemma_noun, wordnet.VERB)
+
+        # 3️⃣ Spelling correction
+        corrected = correct_spelling(lemma_verb, BASE_VOCAB)
+
+        # 4️⃣ Stemming (sir ne bola hoy etle)
+        stem = stemmer.stem(corrected)
+
+        # Store all useful forms
+        cleaned_words.add(corrected)
+        cleaned_words.add(stem)
+
+    return cleaned_words
+"""
+
+
+
 
 # ---------------- EXPERIENCE EXTRACTION ----------------
 def extract_experience(text):
